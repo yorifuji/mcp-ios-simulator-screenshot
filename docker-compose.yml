@@ -1,0 +1,9 @@
+version: "3"
+
+services:
+  mcp-ios-simulator-screenshot:
+    build: .
+    volumes:
+      - ./.screenshots:/app/.screenshots
+    stdin_open: true
+    tty: true

@@ -1,0 +1,36 @@
+{
+  "name": "mcp-ios-simulator-screenshot",
+  "version": "1.0.0",
+  "description": "MCP server to capture iOS Simulator screenshots",
+  "type": "module",
+  "main": "build/index.js",
+  "bin": {
+    "mcp-ios-simulator-screenshot": "./build/index.js"
+  },
+  "files": [
+    "build",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "start": "node build/index.js",
+    "dev": "ts-node --esm src/index.ts",
+    "watch": "nodemon --exec ts-node --esm src/index.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.9.0",
+    "sharp": "^0.33.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/sharp": "^0.32.0",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.1",
+    "nodemon": "^2.0.22"
+  }
+}
