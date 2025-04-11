@@ -1,6 +1,6 @@
 {
   "name": "mcp-ios-simulator-screenshot",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "MCP server to capture iOS Simulator screenshots",
   "type": "module",
   "main": "build/index.js",
