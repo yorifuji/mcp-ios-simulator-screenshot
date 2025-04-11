@@ -1,56 +1,32 @@
 # MCP iOS Simulator Screenshot
 
-Model Context Protocol (MCP)を使用して iOS Simulator のスクリーンショットを取得するサーバーです。
+A server that captures screenshots from iOS Simulator using the Model Context Protocol (MCP).
 
-## 概要
+## Overview
 
-このプロジェクトは、MCP プロトコルを実装したサーバーで、iOS Simulator の現在の画面をキャプチャし、指定されたディレクトリに保存する機能を提供します。
+This project implements an MCP protocol server that captures the current screen of the iOS Simulator and saves it to a specified directory.
 
-## セットアップ
+## Setup
 
-1. **インストール**:
+1. **Installation**:
 
 ```bash
-# グローバルインストール
+# Global installation
 npm install -g mcp-ios-simulator-screenshot
 
-# または、プロジェクト内にインストール
+# Or, install in your project
 npm install mcp-ios-simulator-screenshot
 
-# または、リポジトリからクローン
+# Or, clone from repository
 git clone https://github.com/yorifuji/mcp-ios-simulator-screenshot.git
 cd mcp-ios-simulator-screenshot
 npm install
 npm run build
 ```
 
-2. **MCP クライアントの設定**:
+2. **MCP Client Configuration**:
 
-MCP クライアントの設定ファイルに以下のようにサーバー情報を追加します。
-
-```json
-{
-  "mcpServers": {
-    "mcp-ios-simulator-screenshot": {
-      "command": "mcp-ios-simulator-screenshot"
-    }
-  }
-}
-```
-
-## 環境変数
-
-このサーバーは環境変数を使用しません。
-
-## コマンドライン引数
-
-このサーバーはコマンドライン引数を使用しません。
-
-## 高度な設定
-
-### インストール方法別の MCP クライアント設定
-
-#### グローバルインストールした場合
+Add the server information to your MCP client configuration file as follows:
 
 ```json
 {
@@ -62,7 +38,31 @@ MCP クライアントの設定ファイルに以下のようにサーバー情�
 }
 ```
 
-#### ローカルインストールした場合
+## Environment Variables
+
+This server does not use environment variables.
+
+## Command Line Arguments
+
+This server does not use command line arguments.
+
+## Advanced Configuration
+
+### MCP Client Configuration by Installation Method
+
+#### When Installed Globally
+
+```json
+{
+  "mcpServers": {
+    "mcp-ios-simulator-screenshot": {
+      "command": "mcp-ios-simulator-screenshot"
+    }
+  }
+}
+```
+
+#### When Installed Locally
 
 ```json
 {
@@ -77,7 +77,7 @@ MCP クライアントの設定ファイルに以下のようにサーバー情�
 }
 ```
 
-#### リポジトリからクローンした場合
+#### When Cloned from Repository
 
 ```json
 {
@@ -90,7 +90,7 @@ MCP クライアントの設定ファイルに以下のようにサーバー情�
 }
 ```
 
-#### npx を使用する場合
+#### When Using npx
 
 ```json
 {
@@ -103,7 +103,7 @@ MCP クライアントの設定ファイルに以下のようにサーバー情�
 }
 ```
 
-#### Docker を使用する場合
+#### When Using Docker
 
 ```json
 {
@@ -116,51 +116,51 @@ MCP クライアントの設定ファイルに以下のようにサーバー情�
 }
 ```
 
-## トラブルシューティング
+## Troubleshooting
 
-- **スクリーンショットが取得できない場合**:
+- **If you cannot capture screenshots**:
 
-  - iOS Simulator が起動しているか確認してください
-  - Xcode のコマンドラインツールがインストールされているか確認してください
-  - `xcrun simctl io booted screenshot`コマンドが直接実行できるか確認してください
+  - Check if iOS Simulator is running
+  - Check if Xcode Command Line Tools are installed
+  - Check if the `xcrun simctl io booted screenshot` command can be executed directly
 
-- **パーミッションエラーが発生する場合**:
-  - 出力ディレクトリに書き込み権限があるか確認してください
+- **If permission errors occur**:
+  - Check if you have write permissions for the output directory
 
-## プロジェクト構造
+## Project Structure
 
 ```
 ./
 ├── src/
-│   ├── index.ts                  # エントリーポイント
-│   ├── config.ts                 # 設定
-│   ├── types.ts                  # 型定義
+│   ├── index.ts                  # Entry point
+│   ├── config.ts                 # Configuration
+│   ├── types.ts                  # Type definitions
 │   └── services/
-│       └── screenshot-service.ts # スクリーンショットサービス
-├── build/                        # ビルド出力
-├── .screenshots/                 # デフォルトの出力ディレクトリ
-└── package.json                  # プロジェクト設定
+│       └── screenshot-service.ts # Screenshot service
+├── build/                        # Build output
+├── .screenshots/                 # Default output directory
+└── package.json                  # Project configuration
 ```
 
-## ツール
+## Tools
 
 ### get_ios_simulator_screenshot
 
-iOS Simulator のスクリーンショットを取得し、指定されたディレクトリに保存します。
+Captures a screenshot from the iOS Simulator and saves it to the specified directory.
 
-#### パラメータ
+#### Parameters
 
-| パラメータ名     | 型      | 説明                                                 | デフォルト値                    |
-| ---------------- | ------- | ---------------------------------------------------- | ------------------------------- |
-| output_filename  | string  | 出力ファイル名                                       | simulator\_[タイムスタンプ].png |
-| output_directory | string  | 出力ディレクトリ                                     | .screenshots                    |
-| resize           | boolean | 画像をリサイズするかどうか                           | true                            |
-| max_width        | integer | リサイズ時の最大幅（ピクセル）                       | 640                             |
-| device_id        | string  | 特定のシミュレータデバイスを指定（例: `iPhone15,2`） | 起動中のデバイス（`booted`）    |
+| Parameter Name   | Type    | Description                                     | Default Value              |
+| ---------------- | ------- | ----------------------------------------------- | -------------------------- |
+| output_filename  | string  | Output filename                                 | simulator\_[timestamp].png |
+| output_directory | string  | Output directory                                | .screenshots               |
+| resize           | boolean | Whether to resize the image                     | true                       |
+| max_width        | integer | Maximum width for resizing (pixels)             | 640                        |
+| device_id        | string  | Specify a simulator device (e.g., `iPhone15,2`) | Booted device (`booted`)   |
 
-#### 出力形式
+#### Output Format
 
-成功時：
+On success:
 
 ```json
 {
@@ -177,12 +177,12 @@ iOS Simulator のスクリーンショットを取得し、指定されたディ
 }
 ```
 
-エラー時：
+On error:
 
 ```json
 {
   "success": false,
-  "message": "Error capturing iOS Simulator screenshot: [エラーメッセージ]",
+  "message": "Error capturing iOS Simulator screenshot: [error message]",
   "error": {
     "code": "ENOENT",
     "command": "xcrun simctl io booted screenshot --type=png -",
@@ -191,18 +191,22 @@ iOS Simulator のスクリーンショットを取得し、指定されたディ
 }
 ```
 
-## 必要条件
+## Requirements
 
-- Node.js 16.0.0 以上
-- macOS（iOS Simulator が必要）
+- Node.js 16.0.0 or higher
+- macOS (iOS Simulator required)
 - Xcode Command Line Tools
 
-## 技術スタック
+## Technology Stack
 
 - TypeScript
 - Node.js
 - MCP SDK (@modelcontextprotocol/sdk)
 
-## ライセンス
+## License
 
 MIT
+
+## Other Languages
+
+- [日本語](README.ja.md)
