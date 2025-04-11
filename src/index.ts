@@ -11,32 +11,64 @@ import {
 import { config } from './config.js';
 import { ScreenshotOptions, ScreenshotResult } from './types.js';
 import { ScreenshotService } from './services/screenshot-service.js';
+import { OutputDirectoryManager } from './services/output-directory-manager.js';
+import * as path from 'path';
+import * as fs from 'fs';
+
+/**
+ * Parse command line arguments
+ */
+function parseCommandLineArgs(): { [key: string]: string } {
+  const args = process.argv.slice(2);
+  const result: { [key: string]: string } = {};
+  
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg.startsWith('--') && i + 1 < args.length && !args[i + 1].startsWith('--')) {
+      const key = arg.slice(2);
+      result[key] = args[i + 1];
+      i++; // Skip the next argument as it's the value
+    }
+  }
+  
+  return result;
+}
 
 /**
  * iOS Simulator Screenshot Server
  * A server that uses MCP protocol to capture screenshots from iOS Simulator
  */
 class IOSSimulatorScreenshotServer {
-  /**
-   * MCP server
-   */
   private server: Server;
-  
-  /**
-   * Screenshot service
-   */
   private screenshotService: ScreenshotService;
+  private outputManager: OutputDirectoryManager;
 
   /**
    * Constructor
    */
+  // Package info loaded from package.json
+  private packageInfo: { name: string; version: string };
+
   constructor() {
-    this.screenshotService = new ScreenshotService();
+    // Load package info
+    this.packageInfo = this.loadPackageInfo();
     
+    // Initialize output directory manager with default subdirectory name
+    this.outputManager = new OutputDirectoryManager(
+      config.screenshot.defaultOutputDirName
+    );
+    
+    // Apply command line arguments
+    this.applyCommandLineArgs();
+    
+    // Initialize screenshot service
+    this.screenshotService = new ScreenshotService(this.outputManager);
+    
+    // Initialize MCP server
     this.server = new Server(
       {
-        name: config.server.name,
-        version: config.server.version,
+        name: this.packageInfo.name,
+        version: this.packageInfo.version,
       },
       {
         capabilities: {
@@ -46,103 +78,66 @@ class IOSSimulatorScreenshotServer {
       }
     );
     
-    this.setupResourceHandlers();
-    this.setupToolHandlers();
+    // Set up handlers
+    this.setupHandlers();
     
-    // Error handling
-    this.server.onerror = (error) => console.error('[MCP Error]', error);
-    process.on('SIGINT', async () => {
-      await this.server.close();
-      process.exit(0);
-    });
+    // Set up error handling
+    this.setupErrorHandling();
   }
 
   /**
-   * Set up resource handlers
+   * Load package info from package.json
    */
-  private setupResourceHandlers(): void {
-    // Provide resource list (returns empty list)
+  private loadPackageInfo(): { name: string; version: string } {
+    try {
+      // Try to load from package.json in the same directory as the running script
+      const packagePath = path.resolve(process.cwd(), 'package.json');
+      const packageData = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+      return {
+        name: packageData.name || 'mcp-ios-simulator-screenshot',
+        version: packageData.version || '1.0.0'
+      };
+    } catch (error) {
+      // Fallback values if package.json cannot be read
+      return {
+        name: 'mcp-ios-simulator-screenshot',
+        version: '1.0.0'
+      };
+    }
+  }
+
+  /**
+   * Apply command line arguments
+   */
+  private applyCommandLineArgs(): void {
+    const args = parseCommandLineArgs();
+    
+    // Handle output directory argument
+    if (args['output-dir']) {
+      // Set the root directory to the specified output directory
+      // and use it directly (without subdirectory)
+      this.outputManager.setRootDirectory(args['output-dir'], true);
+    }
+  }
+
+  /**
+   * Set up all handlers
+   */
+  private setupHandlers(): void {
+    // Resource handlers (empty list)
     this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
       return { resources: [] };
     });
-  }
 
-  /**
-   * Set up tool handlers
-   */
-  private setupToolHandlers(): void {
-    // Provide tool list
+    // Tool list handler
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
-      tools: [
-        {
-          name: 'get_ios_simulator_screenshot',
-          description: 'Capture a screenshot from iOS Simulator',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              output_filename: {
-                type: 'string',
-                description: 'Output filename (if not specified, timestamp.png will be used)'
-              },
-              output_directory: {
-                type: 'string',
-                description: 'Output directory (if not specified, .screenshots will be used)',
-                default: '.screenshots'
-              },
-              resize: {
-                type: 'boolean',
-                description: 'Whether to resize the image to approximately VGA size (640x480)',
-                default: true
-              },
-              max_width: {
-                type: 'integer',
-                description: 'Maximum width for resizing (pixels)',
-                default: 640
-              },
-              device_id: {
-                type: 'string',
-                description: 'Specify a simulator device (if not specified, the booted device will be used)'
-              }
-            },
-            required: []
-          }
-        }
-      ]
+      tools: [this.getScreenshotToolDefinition()]
     }));
 
-    // Tool invocation
+    // Tool invocation handler
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      // When capturing iOS Simulator screenshot
-      if (request.params.name === 'get_ios_simulator_screenshot') {
-        try {
-          // Convert parameters
-          const args = request.params.arguments as Record<string, unknown> || {};
-          const options: ScreenshotOptions = {
-            outputFileName: args.output_filename as string,
-            outputDirectory: args.output_directory as string,
-            resize: args.resize as boolean,
-            maxWidth: args.max_width as number,
-            deviceId: args.device_id as string
-          };
-          
-          // Capture screenshot
-          const result = await this.screenshotService.captureScreenshot(options);
-          
-          // Convert result to MCP response
-          return this.createMcpResponse(result);
-        } catch (error) {
-          // Handle unexpected errors
-          const err = error as Error;
-          console.error('Unexpected error:', err);
-          
-          return this.createMcpResponse({
-            success: false,
-            message: `Unexpected error: ${err.message}`,
-            error: {
-              code: 'UNEXPECTED_ERROR'
-            }
-          });
-        }
+      if (request.params.name === 'get_screenshot') {
+        return await this.handleScreenshotRequest(request);
       } else {
         throw new McpError(
           ErrorCode.MethodNotFound,
@@ -153,31 +148,95 @@ class IOSSimulatorScreenshotServer {
   }
 
   /**
-   * Convert screenshot result to MCP response
-   * @param result Screenshot result
-   * @returns MCP response
+   * Get screenshot tool definition
+   */
+  private getScreenshotToolDefinition() {
+    return {
+      name: 'get_screenshot',
+      description: 'Capture a screenshot from iOS Simulator',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          output_filename: {
+            type: 'string',
+            description: 'Output filename (if not specified, timestamp.png will be used)'
+          },
+          output_directory_name: {
+            type: 'string',
+            description: 'Subdirectory name for screenshots (if not specified, .screenshots will be used)',
+            default: config.screenshot.defaultOutputDirName
+          },
+          resize: {
+            type: 'boolean',
+            description: 'Whether to resize the image to approximately VGA size',
+            default: true
+          },
+          max_width: {
+            type: 'integer',
+            description: 'Maximum width for resizing (pixels)',
+            default: config.screenshot.defaultMaxWidth
+          },
+          device_id: {
+            type: 'string',
+            description: 'Specify a simulator device (if not specified, the booted device will be used)'
+          }
+        },
+        required: []
+      }
+    };
+  }
+
+  /**
+   * Handle screenshot request
+   */
+  private async handleScreenshotRequest(request: any): Promise<any> {
+    try {
+      const args = request.params.arguments as Record<string, unknown> || {};
+      
+      // Map API parameters to internal options
+      const options: ScreenshotOptions = {
+        outputFileName: args.output_filename as string,
+        outputDirectoryName: args.output_directory_name as string,
+        resize: args.resize as boolean,
+        maxWidth: args.max_width as number,
+        deviceId: args.device_id as string
+      };
+      
+      // Capture screenshot
+      const result = await this.screenshotService.captureScreenshot(options);
+      
+      // Return formatted response
+      return this.createMcpResponse(result);
+    } catch (error) {
+      const err = error as Error;
+      return this.createMcpResponse({
+        success: false,
+        message: `Error: ${err.message}`,
+        error: { code: 'UNEXPECTED_ERROR' }
+      });
+    }
+  }
+
+  /**
+   * Set up error handling
+   */
+  private setupErrorHandling(): void {
+    this.server.onerror = (error) => console.error('[MCP Error]', error);
+    
+    process.on('SIGINT', async () => {
+      await this.server.close();
+      process.exit(0);
+    });
+  }
+
+  /**
+   * Create MCP response from screenshot result
    */
   private createMcpResponse(result: ScreenshotResult): any {
-    if (result.success) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }
-        ]
-      };
-    } else {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }
-        ],
-        isError: true
-      };
-    }
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      isError: !result.success
+    };
   }
 
   /**
@@ -190,6 +249,6 @@ class IOSSimulatorScreenshotServer {
   }
 }
 
-// サーバーのインスタンスを作成して起動
+// Create and run server
 const server = new IOSSimulatorScreenshotServer();
 server.run().catch(console.error);

@@ -9,10 +9,10 @@ export interface ScreenshotOptions {
   outputFileName?: string;
   
   /**
-   * Output directory
+   * Output directory name
    * If not specified, default value will be used
    */
-  outputDirectory?: string;
+  outputDirectoryName?: string;
   
   /**
    * Whether to resize the image
@@ -100,6 +100,51 @@ export interface ScreenshotResult {
      * Timestamp
      */
     timestamp: string;
+  };
+  
+  /**
+   * Server configuration information (only when successful)
+   */
+  serverConfig?: {
+    /**
+     * Command line arguments used when starting the server
+     */
+    commandLineArgs?: {
+      /**
+       * Output directory specified with --output-dir
+       */
+      outputDir?: string;
+    };
+  };
+
+  /**
+   * Options used for the screenshot (only when successful)
+   */
+  options?: {
+    /**
+     * Output directory name
+     */
+    outputDirectoryName?: string;
+    
+    /**
+     * Output filename
+     */
+    outputFileName?: string;
+    
+    /**
+     * Whether to resize the image
+     */
+    resize?: boolean;
+    
+    /**
+     * Maximum width for resizing (pixels)
+     */
+    maxWidth?: number;
+    
+    /**
+     * Simulator device ID
+     */
+    deviceId?: string;
   };
 }
 

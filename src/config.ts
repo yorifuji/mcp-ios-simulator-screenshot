@@ -1,54 +1,43 @@
 /**
- * Application settings
+ * Application configuration
  */
+
+/**
+ * Escape function for command injection prevention
+ * @param input String to escape
+ * @returns Escaped string
+ */
+function escapeShellArg(input: string): string {
+  // Remove dangerous characters (shell special characters)
+  return input.replace(/[;&|`$(){}[\]<>"'\\]/g, '');
+}
+
 export const config = {
   /**
-   * Screenshot related settings
+   * Screenshot settings
    */
   screenshot: {
-    /**
-     * Default output directory
-     */
-    defaultOutputDir: '.screenshots',
+    // Default output directory name for screenshots
+    defaultOutputDirName: '.screenshots',
     
-    /**
-     * Default maximum width for resizing (pixels)
-     */
+    // Default maximum width for resizing (pixels)
     defaultMaxWidth: 640,
     
-    /**
-     * Maximum buffer size for command execution (bytes)
-     */
+    // Maximum buffer size for command execution (bytes)
     maxBufferSize: 50 * 1024 * 1024, // 50MB
     
-    /**
-     * Command definitions
-     */
+    // Command definitions
     commands: {
-      /**
-       * Screenshot capture command
-       * @param deviceId Optional device ID
-       * @returns Command string
-       */
-      capture: (deviceId?: string): string =>
-        deviceId
-          ? `xcrun simctl io ${deviceId} screenshot --type=png -`
-          : 'xcrun simctl io booted screenshot --type=png -',
+      // Screenshot capture command
+      capture: (deviceId?: string): string => {
+        // Use 'booted' if deviceId is not specified
+        const id = deviceId || 'booted';
+
+        // Apply escape processing for command injection prevention
+        const safeId = escapeShellArg(id);
+
+        return `xcrun simctl io ${safeId} screenshot --type=png -`;
+      }
     }
-  },
-  
-  /**
-   * Server related settings
-   */
-  server: {
-    /**
-     * Server name
-     */
-    name: 'mcp-ios-simulator-screenshot',
-    
-    /**
-     * Version
-     */
-    version: '1.0.0'
   }
 };

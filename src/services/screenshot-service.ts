@@ -5,16 +5,24 @@ import { promisify } from 'util';
 import sharp from 'sharp';
 import { config } from '../config.js';
 import { ScreenshotOptions, ScreenshotResult } from '../types.js';
+import { OutputDirectoryManager } from './output-directory-manager.js';
+import { DeviceValidator } from './device-validator.js';
 
 /**
  * Screenshot Service
  * Provides functionality to capture screenshots from iOS Simulator
  */
 export class ScreenshotService {
-  /**
-   * Promise version of exec
-   */
   private execPromise = promisify(exec);
+  private deviceValidator: DeviceValidator;
+  
+  /**
+   * Constructor
+   * @param outputManager Output directory manager
+   */
+  constructor(private outputManager: OutputDirectoryManager) {
+    this.deviceValidator = new DeviceValidator();
+  }
 
   /**
    * Capture a screenshot
@@ -23,75 +31,93 @@ export class ScreenshotService {
    */
   public async captureScreenshot(options: ScreenshotOptions = {}): Promise<ScreenshotResult> {
     try {
-      // Parse options
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const outputFileName = options.outputFileName || `simulator_${timestamp}.png`;
-      const outputDirectory = options.outputDirectory || config.screenshot.defaultOutputDir;
-      const resize = options.resize !== false; // Default is true
-      const maxWidth = options.maxWidth || config.screenshot.defaultMaxWidth;
-      const deviceId = options.deviceId;
+      // Prepare file paths
+      const { outputPath } = this.prepareFilePaths(options);
+      
+      // Validate device ID (only if specified)
+      if (options.deviceId && options.deviceId !== 'booted') {
+        const isValid = await this.deviceValidator.isValidDeviceId(options.deviceId);
+        if (!isValid) {
+          throw new Error(`Invalid device ID: ${options.deviceId}. Please use a valid device ID or 'booted'.`);
+        }
+      }
 
-      // Normalize and validate paths
-      const safeOutputDir = this.normalizePath(outputDirectory);
-      const safeOutputFileName = this.normalizePath(outputFileName);
-      
-      // Create output directory
-      const outputDirPath = path.resolve(process.cwd(), safeOutputDir);
-      await fs.mkdir(outputDirPath, { recursive: true });
-      
-      // Create output path
-      const outputPath = path.resolve(outputDirPath, safeOutputFileName);
-      
-      // Ensure output path is within current directory
-      const basePath = process.cwd();
-      if (!outputPath.startsWith(basePath)) {
-        throw new Error('Invalid output path: Path traversal detected');
-      }
-      
-      // Create screenshot capture command
-      const cmd = config.screenshot.commands.capture(deviceId);
-      
-      // Capture screenshot
-      const { stdout } = await this.execPromise(cmd, {
-        encoding: 'buffer',
-        maxBuffer: config.screenshot.maxBufferSize
-      });
-      
-      // Save screenshot
-      await fs.writeFile(outputPath, stdout);
-      
-      // Resize if needed
-      let finalPath = outputPath;
-      if (resize) {
-        finalPath = await this.resizeImage(outputPath, maxWidth);
-      }
-      
+      // Capture screenshot from simulator
+      const imageBuffer = await this.captureSimulatorScreenshot(options.deviceId);
+
+      // Save the image
+      await fs.writeFile(outputPath, imageBuffer);
+
+      // Process the image (resize if needed)
+      const finalPath = options.resize !== false
+        ? await this.resizeImage(outputPath, options.maxWidth || config.screenshot.defaultMaxWidth)
+        : outputPath;
+
       // Get image metadata
       const metadata = await this.getImageMetadata(finalPath);
-      
-      // Convert to relative path
-      const relativePath = path.relative(process.cwd(), finalPath);
-      
-      // Return result
+
+      // Get command line arguments
+      const outputDir = this.outputManager.isUsingRootDirectoryDirectly() ?
+        this.outputManager.getRootDirectory() : undefined;
+
       return {
         success: true,
         message: 'iOS Simulator screenshot saved successfully',
-        filePath: relativePath,
-        metadata
-      };
-    } catch (error) {
-      // Return error information
-      const err = error as Error & { code?: string; stderr?: string; cmd?: string };
-      return {
-        success: false,
-        message: `Error capturing iOS Simulator screenshot: ${err.message}`,
-        error: {
-          code: err.code || 'UNKNOWN_ERROR',
-          command: err.cmd,
-          stderr: err.stderr?.toString()
+        filePath: finalPath,
+        metadata,
+        serverConfig: {
+          commandLineArgs: {
+            outputDir
+          }
         }
       };
+    } catch (error) {
+      return this.createErrorResult(error);
     }
+  }
+
+  /**
+   * Prepare file paths for screenshot
+   */
+  private prepareFilePaths(options: ScreenshotOptions): { outputPath: string, outputFileName: string } {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const outputFileName = options.outputFileName || `simulator_${timestamp}.png`;
+
+    // Always reset to default directory name first
+    this.outputManager.setSubDirectoryName(config.screenshot.defaultOutputDirName);
+
+    // If subdirectory is specified, override with the specified value
+    if (options.outputDirectoryName) {
+      this.outputManager.setSubDirectoryName(options.outputDirectoryName);
+    }
+
+    // Get output path with filename
+    const outputPath = this.outputManager.resolveOutputPath(outputFileName);
+
+    // Get output directory (without filename)
+    const outputDirectory = path.dirname(outputPath);
+
+    // Ensure output directory exists
+    fs.mkdir(outputDirectory, { recursive: true }).catch(() => {});
+
+    return {
+      outputPath,
+      outputFileName
+    };
+  }
+
+  /**
+   * Capture screenshot from iOS Simulator
+   */
+  private async captureSimulatorScreenshot(deviceId?: string): Promise<Buffer> {
+    const cmd = config.screenshot.commands.capture(deviceId);
+    
+    const { stdout } = await this.execPromise(cmd, {
+      encoding: 'buffer',
+      maxBuffer: config.screenshot.maxBufferSize
+    });
+    
+    return stdout;
   }
 
   /**
@@ -102,26 +128,22 @@ export class ScreenshotService {
    */
   private async resizeImage(inputPath: string, maxWidth: number): Promise<string> {
     try {
-      const outputPath = inputPath;
       const image = sharp(inputPath);
       const metadata = await image.metadata();
-      
+
       // Don't resize if image is already smaller than max width
-      if (metadata.width && metadata.width <= maxWidth) {
+      if (!metadata.width || metadata.width <= maxWidth) {
         return inputPath;
       }
-      
-      // Resize and save to temporary file
+
+      // Resize directly to the same file
       await image
         .resize({ width: maxWidth, withoutEnlargement: true })
-        .toFile(outputPath + '.resized');
-      
-      // Move temporary file to original file
-      await fs.rename(outputPath + '.resized', outputPath);
-      
-      return outputPath;
+        .toBuffer()
+        .then(data => fs.writeFile(inputPath, data));
+
+      return inputPath;
     } catch (error) {
-      console.error(`Error resizing image: ${(error as Error).message}`);
       // Return original image if resizing fails
       return inputPath;
     }
@@ -146,7 +168,6 @@ export class ScreenshotService {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error(`Error getting image metadata: ${(error as Error).message}`);
       return {
         width: 0,
         height: 0,
@@ -158,14 +179,37 @@ export class ScreenshotService {
   }
 
   /**
-   * Normalize a path
-   * @param inputPath Input path
-   * @returns Normalized path
+   * Create error result object
    */
-  private normalizePath(inputPath: string): string {
-    // Normalize path
-    const normalized = path.normalize(inputPath);
-    // Prevent directory traversal attacks
-    return normalized.replace(/^(\.\.[\/\\])+/, '');
+  private createErrorResult(error: unknown): ScreenshotResult {
+    const err = error as Error & { code?: string; stderr?: string; cmd?: string };
+
+    // Improved error message
+    let message = `Error capturing iOS Simulator screenshot: ${err.message}`;
+
+    // Add help message for device ID related errors
+    if (err.message && err.message.includes('Invalid device ID')) {
+      message += ' You can use the special value "booted" to target the currently booted simulator, or specify a valid device UUID.';
+
+      // Asynchronously fetch and display available devices (not included in error response)
+      this.deviceValidator.getAvailableDeviceIds().then(devices => {
+        if (devices.length > 0) {
+          console.error('Available devices:');
+          devices.forEach(device => {
+            console.error(`- ${device.name} (${device.udid}) - ${device.state}`);
+          });
+        }
+      }).catch(() => {});
+    }
+
+    return {
+      success: false,
+      message,
+      error: {
+        code: err.code || 'UNKNOWN_ERROR',
+        command: err.cmd,
+        stderr: err.stderr?.toString()
+      }
+    };
   }
 }

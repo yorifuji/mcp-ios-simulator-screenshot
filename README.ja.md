@@ -8,76 +8,22 @@ Model Context Protocol (MCP)を使用して iOS Simulator のスクリーンシ�
 
 ## セットアップ
 
-1. **インストール**:
+### Cline and Roo Code
 
-```bash
-# グローバルインストール
-npm install -g mcp-ios-simulator-screenshot
-
-# または、プロジェクト内にインストール
-npm install mcp-ios-simulator-screenshot
-
-# または、リポジトリからクローン
-git clone https://github.com/yorifuji/mcp-ios-simulator-screenshot.git
-cd mcp-ios-simulator-screenshot
-npm install
-npm run build
-```
-
-2. **MCP クライアントの設定**:
-
-MCP クライアントの設定ファイルに以下のようにサーバー情報を追加します。
+Cline と Roo Code の基本的な形式は以下の通りです：
 
 ```json
 {
   "mcpServers": {
     "mcp-ios-simulator-screenshot": {
-      "command": "mcp-ios-simulator-screenshot"
+      "command": "npx",
+      "args": ["-y", "mcp-ios-simulator-screenshot"]
     }
   }
 }
 ```
 
-## 環境変数
-
-このサーバーは環境変数を使用しません。
-
-## コマンドライン引数
-
-このサーバーはコマンドライン引数を使用しません。
-
-## 高度な設定
-
-### インストール方法別の MCP クライアント設定
-
-#### グローバルインストールした場合
-
-```json
-{
-  "mcpServers": {
-    "mcp-ios-simulator-screenshot": {
-      "command": "mcp-ios-simulator-screenshot"
-    }
-  }
-}
-```
-
-#### ローカルインストールした場合
-
-```json
-{
-  "mcpServers": {
-    "mcp-ios-simulator-screenshot": {
-      "command": "node",
-      "args": [
-        "/path/to/node_modules/mcp-ios-simulator-screenshot/build/index.js"
-      ]
-    }
-  }
-}
-```
-
-#### リポジトリからクローンした場合
+リポジトリをクローンした場合は、以下の設定を使用できます：
 
 ```json
 {
@@ -90,75 +36,40 @@ MCP クライアントの設定ファイルに以下のようにサーバー情�
 }
 ```
 
-#### npx を使用する場合
+### Cursor, Claude Desktop
+
+Cursor, Claude Desktop では `--output-dir` と出力先を指定する必要があります；
 
 ```json
 {
   "mcpServers": {
     "mcp-ios-simulator-screenshot": {
       "command": "npx",
-      "args": ["mcp-ios-simulator-screenshot"]
+      "args": [
+        "mcp-ios-simulator-screenshot",
+        "--output-dir",
+        "/path/to/your/output/directory"
+      ]
     }
   }
 }
 ```
 
-#### Docker を使用する場合
+## MCP ツールパラメータ
 
-```json
-{
-  "mcpServers": {
-    "mcp-ios-simulator-screenshot": {
-      "command": "docker",
-      "args": ["run", "-i", "mcp-ios-simulator-screenshot"]
-    }
-  }
-}
-```
-
-## トラブルシューティング
-
-- **スクリーンショットが取得できない場合**:
-
-  - iOS Simulator が起動しているか確認してください
-  - Xcode のコマンドラインツールがインストールされているか確認してください
-  - `xcrun simctl io booted screenshot`コマンドが直接実行できるか確認してください
-
-- **パーミッションエラーが発生する場合**:
-  - 出力ディレクトリに書き込み権限があるか確認してください
-
-## プロジェクト構造
-
-```
-./
-├── src/
-│   ├── index.ts                  # エントリーポイント
-│   ├── config.ts                 # 設定
-│   ├── types.ts                  # 型定義
-│   └── services/
-│       └── screenshot-service.ts # スクリーンショットサービス
-├── build/                        # ビルド出力
-├── .screenshots/                 # デフォルトの出力ディレクトリ
-└── package.json                  # プロジェクト設定
-```
-
-## ツール
-
-### get_ios_simulator_screenshot
+### get_screenshot
 
 iOS Simulator のスクリーンショットを取得し、指定されたディレクトリに保存します。
 
-#### パラメータ
+| パラメータ名          | 型      | 説明                                     | デフォルト値                 |
+| --------------------- | ------- | ---------------------------------------- | ---------------------------- |
+| output_filename       | string  | 出力ファイル名                           | timestamp.png                |
+| output_directory_name | string  | スクリーンショット用のサブディレクトリ名 | .screenshots                 |
+| resize                | boolean | 画像をリサイズするかどうか               | true                         |
+| max_width             | integer | リサイズ時の最大幅（ピクセル）           | 640                          |
+| device_id             | string  | 特定のシミュレータデバイスを指定         | 起動中のデバイス（`booted`） |
 
-| パラメータ名     | 型      | 説明                                                 | デフォルト値                    |
-| ---------------- | ------- | ---------------------------------------------------- | ------------------------------- |
-| output_filename  | string  | 出力ファイル名                                       | simulator\_[タイムスタンプ].png |
-| output_directory | string  | 出力ディレクトリ                                     | .screenshots                    |
-| resize           | boolean | 画像をリサイズするかどうか                           | true                            |
-| max_width        | integer | リサイズ時の最大幅（ピクセル）                       | 640                             |
-| device_id        | string  | 特定のシミュレータデバイスを指定（例: `iPhone15,2`） | 起動中のデバイス（`booted`）    |
-
-#### 出力形式
+## 出力形式
 
 成功時：
 
@@ -173,9 +84,16 @@ iOS Simulator のスクリーンショットを取得し、指定されたディ
     "format": "png",
     "size": 382946,
     "timestamp": "2025-04-10T16:51:16.755Z"
+  },
+  "serverConfig": {
+    "commandLineArgs": {
+      "outputDir": "/Users/username/Desktop" // --output-dir が指定された場合のみ含まれる
+    }
   }
 }
 ```
+
+注意：`serverConfig.commandLineArgs.outputDir` フィールドは、サーバー起動時に `--output-dir` パラメータが指定された場合のみレスポンスに含まれます。
 
 エラー時：
 
@@ -190,6 +108,17 @@ iOS Simulator のスクリーンショットを取得し、指定されたディ
   }
 }
 ```
+
+## トラブルシューティング
+
+- **スクリーンショットが取得できない場合**:
+
+  - iOS Simulator が起動しているか確認してください
+  - Xcode のコマンドラインツールがインストールされているか確認してください
+  - `xcrun simctl io booted screenshot`コマンドが直接実行できるか確認してください
+
+- **パーミッションエラーが発生する場合**:
+  - 出力ディレクトリに書き込み権限があるか確認してください
 
 ## 必要条件
 
@@ -206,3 +135,7 @@ iOS Simulator のスクリーンショットを取得し、指定されたディ
 ## ライセンス
 
 MIT
+
+## 他の言語
+
+- [English](README.md)
