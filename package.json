@@ -5,7 +5,7 @@
   "type": "module",
   "main": "build/index.js",
   "bin": {
-    "mcp-ios-simulator-screenshot": "./build/index.js"
+    "mcp-ios-simulator-screenshot": "build/index.js"
   },
   "files": [
     "build",
