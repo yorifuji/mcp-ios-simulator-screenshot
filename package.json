@@ -32,5 +32,17 @@
     "typescript": "^5.3.3",
     "ts-node": "^10.9.1",
     "nodemon": "^2.0.22"
+  },
+  "author": "yorifuji",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yorifuji/mcp-ios-simulator-screenshot.git"
+  },
+  "keywords": [
+    "mcp"
+  ],
+  "engines": {
+    "node": "v22"
   }
 }
