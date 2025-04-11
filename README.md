@@ -87,7 +87,7 @@ On success:
   },
   "serverConfig": {
     "commandLineArgs": {
-      "outputDir": "/Users/username/Desktop" // Only included when --output-dir is specified
+      "outputDir": "/Users/username/Desktop"
     }
   }
 }

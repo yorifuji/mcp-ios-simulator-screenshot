@@ -87,7 +87,7 @@ iOS Simulator のスクリーンショットを取得し、指定されたディ
   },
   "serverConfig": {
     "commandLineArgs": {
-      "outputDir": "/Users/username/Desktop" // --output-dir が指定された場合のみ含まれる
+      "outputDir": "/Users/username/Desktop"
     }
   }
 }
