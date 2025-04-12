@@ -1,11 +1,12 @@
 import * as path from 'path';
 import * as process from 'process';
+import { IOutputDirectoryManager } from '../core/interfaces/output.js';
 
 /**
  * Output Directory Manager
  * Simple utility to manage screenshot output directory
  */
-export class OutputDirectoryManager {
+export class OutputDirectoryManager implements IOutputDirectoryManager {
   /**
    * Root directory where screenshots are stored (absolute path)
    */

@@ -87,7 +87,7 @@ iOS Simulator のスクリーンショットを取得し、指定されたディ
   },
   "serverConfig": {
     "commandLineArgs": {
-      "outputDir": "/Users/username/Desktop" // --output-dir が指定された場合のみ含まれる
+      "outputDir": "/Users/username/Desktop"
     }
   }
 }
@@ -131,6 +131,78 @@ iOS Simulator のスクリーンショットを取得し、指定されたディ
 - TypeScript
 - Node.js
 - MCP SDK (@modelcontextprotocol/sdk)
+- Sharp (画像処理)
+
+## 開発
+
+### コマンドラインインターフェース (CLI)
+
+このプロジェクトは、MCP クライアントを使用せずに直接コマンドラインから利用できるインターフェースも提供しています：
+
+#### インストール
+
+```bash
+# グローバルインストール
+npm install -g mcp-ios-simulator-screenshot
+
+# インストールせずにnpxを使用
+npx mcp-ios-simulator-screenshot
+```
+
+#### 使用方法
+
+```bash
+# 基本的な使用方法（デフォルトオプションを使用）
+ios-screenshot
+
+# カスタムオプションを指定
+ios-screenshot --output-filename custom.png --resize false
+
+# 出力ディレクトリを指定
+ios-screenshot --output-dir /path/to/output/directory
+
+# ヘルプを表示
+ios-screenshot --help
+```
+
+#### CLI オプション
+
+| オプション              | 説明                                     | デフォルト値         |
+| ----------------------- | ---------------------------------------- | -------------------- |
+| --output-filename       | 出力ファイル名                           | timestamp.png        |
+| --output-directory-name | スクリーンショット用のサブディレクトリ名 | .screenshots         |
+| --resize                | 画像をリサイズするかどうか               | true                 |
+| --max-width             | リサイズ時の最大幅（ピクセル）           | 640                  |
+| --device-id             | 特定のシミュレータデバイスを指定         | booted               |
+| --output-dir            | ルート出力ディレクトリ                   | カレントディレクトリ |
+| --help, -h              | ヘルプメッセージを表示                   | -                    |
+
+### プロジェクトのビルド
+
+```bash
+# 依存関係のインストール
+npm install
+
+# プロジェクトのビルド
+npm run build
+```
+
+### 開発モードでの実行
+
+```bash
+# MCPサーバーを開発モードで実行
+npm run dev
+
+# CLIを開発モードで実行
+npm run dev:cli
+```
+
+### テスト
+
+```bash
+# テストの実行
+npm test
+```
 
 ## ライセンス
 

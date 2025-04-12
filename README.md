@@ -87,7 +87,7 @@ On success:
   },
   "serverConfig": {
     "commandLineArgs": {
-      "outputDir": "/Users/username/Desktop" // Only included when --output-dir is specified
+      "outputDir": "/Users/username/Desktop"
     }
   }
 }
@@ -129,6 +129,78 @@ Note: The `serverConfig.commandLineArgs.outputDir` field is only included in the
 - TypeScript
 - Node.js
 - MCP SDK (@modelcontextprotocol/sdk)
+- Sharp (image processing)
+
+## Development
+
+### Command Line Interface (CLI)
+
+This project also provides a command-line interface (CLI) for direct usage without an MCP client:
+
+#### Installation
+
+```bash
+# Global installation
+npm install -g mcp-ios-simulator-screenshot
+
+# Or use npx without installation
+npx mcp-ios-simulator-screenshot
+```
+
+#### Usage
+
+```bash
+# Basic usage (uses default options)
+ios-screenshot
+
+# With custom options
+ios-screenshot --output-filename custom.png --resize false
+
+# Specify output directory
+ios-screenshot --output-dir /path/to/output/directory
+
+# Show help
+ios-screenshot --help
+```
+
+#### CLI Options
+
+| Option                  | Description                         | Default Value |
+| ----------------------- | ----------------------------------- | ------------- |
+| --output-filename       | Output filename                     | timestamp.png |
+| --output-directory-name | Subdirectory name for screenshots   | .screenshots  |
+| --resize                | Whether to resize the image         | true          |
+| --max-width             | Maximum width for resizing (pixels) | 640           |
+| --device-id             | Specify a simulator device          | booted        |
+| --output-dir            | Root output directory               | current dir   |
+| --help, -h              | Show help message                   | -             |
+
+### Building the Project
+
+```bash
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+```
+
+### Running in Development Mode
+
+```bash
+# Run MCP server in development mode
+npm run dev
+
+# Run CLI in development mode
+npm run dev:cli
+```
+
+### Testing
+
+```bash
+# Run tests
+npm test
+```
 
 ## License
 
