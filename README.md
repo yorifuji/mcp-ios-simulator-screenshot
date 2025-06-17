@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/yorifuji-mcp-ios-simulator-screenshot-badge.png)](https://mseep.ai/app/yorifuji-mcp-ios-simulator-screenshot)
+
 # MCP iOS Simulator Screenshot
 
 A server that captures screenshots from iOS Simulator using the Model Context Protocol (MCP).
